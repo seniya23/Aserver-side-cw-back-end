@@ -7,7 +7,7 @@ db.run(`
     firstName TEXT NOT NULL,
     lastName TEXT NOT NULL,
     password TEXT NOT NULL,
-    role TEXT DEFAULT 'user',
+    role TEXT DEFAULT 'alumni',
     isBlocked INTEGER DEFAULT 0,
     image TEXT DEFAULT 'default.jpg'
   )

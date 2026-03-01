@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from "cors";
 import userRouter from './routes/userRouter.js';
+import alumniRouter from './routes/alumniRouter.js';
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 
@@ -38,6 +39,7 @@ app.use((req,res,next)=>{
 })
 
 app.use("/api/users",userRouter);
+app.use("/api/alumni",alumniRouter);
 
 app.listen(process.env.PORT, () => {
   console.log('Server is running on http://localhost:3000');
