@@ -1,5 +1,4 @@
 import alumniTable from "../models/alumniTable.js";
-import { calculateProfileCompletion as computeProfileCompletion } from "../utils/profileCompletion.js";
 
 
 export function Createalumniprofile(req,res){
@@ -24,19 +23,19 @@ export function Createalumniprofile(req,res){
     const linkedinUrl = req.body.linkedinUrl;
     const biography = req.body.biography;
 
-    // build object to calculate completion percentage
-    const alumniData = {
+    // Calculate profile completion percentage
+    const profileData = {
         image,
         employmentStartDate,
         employmentEndDate,
-        shortCourses: shortCourse,
+        shortCourse,
         professionalLicences,
         professionalCertifications,
         degrees,
         linkedinUrl,
         biography
     };
-    const profileCompletionPercentage = computeProfileCompletion(alumniData);
+    const profileCompletionPercentage = calculateProfileCompletion(profileData);
 
 
     alumniTable.get(
@@ -90,27 +89,28 @@ export function Getalumniprofile(req,res){
             }
             if(user){
                 // recalculate completion to ensure it's up-to-date
-                const computed = calculateProfileCompletion(user);
-                if (computed !== user.profileCompletionPercentage) {
-                    alumniTable.run(
-                        "UPDATE alumni SET profileCompletionPercentage = ? WHERE email = ?",
-                        [computed, email],
-                        updateErr => {
-                            if (updateErr) {
-                                console.error("Failed to update completion percentage", updateErr);
-                            }
-                        }
-                    );
-                    user.profileCompletionPercentage = computed;
-                }
+                // const computed = calculateProfileCompletion(user);
+                // if (computed !== user.profileCompletionPercentage) {
+                //     alumniTable.run(
+                //         "UPDATE alumni SET profileCompletionPercentage = ? WHERE email = ?",
+                //         [computed, email],
+                //         updateErr => {
+                //             if (updateErr) {
+                //                 console.error("Failed to update completion percentage", updateErr);
+                //             }
+                //         }
+                //     );
+                //     user.profileCompletionPercentage = computed;
+                // }
 
                 res.json({
                     massage : user
                 });
             }
             console.log(user);
+        }
+    );
 }
-    )}
 
 export function Updatealumniprofile(req, res) {
     if (!req.user) {
@@ -144,8 +144,8 @@ export function Updatealumniprofile(req, res) {
                 ...req.body
             };
 
-            // calculate new completion percentage
-            const completion = computeProfileCompletion(updated);
+            // Calculate profile completion percentage
+            const completion = calculateProfileCompletion(updated);
 
             alumniTable.run(
                 `UPDATE alumni SET image = ?, employmentStartDate = ?, employmentEndDate = ?, shortCourses = ?, professionalLicences = ?, professionalCertifications = ?, degrees = ?, linkedinUrl = ?, biography = ?, profileCompletionPercentage = ? WHERE email = ?`,
