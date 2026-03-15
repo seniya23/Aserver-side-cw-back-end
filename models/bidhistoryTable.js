@@ -1,16 +1,13 @@
 import db from "../config/database.js";
 
 db.run(`
-  CREATE TABLE IF NOT EXISTS bidding (
+  CREATE TABLE IF NOT EXISTS bidhistory (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
     firstName TEXT NOT NULL,
     lastName TEXT NOT NULL,
-    image TEXT,
     bidAmount INTEGER NOT NULL,
-    bidTime DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status TEXT DEFAULT 'pending',
-    winAmount INTEGER NOT NULL
+    bidDate DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
 
