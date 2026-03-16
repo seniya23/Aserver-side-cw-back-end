@@ -152,3 +152,40 @@ export function selectWinner(req, res) {
         }
     );
 }
+
+export function deleteBids(req,res){
+    const email =  req.params.email;
+
+    biddingTable.get(
+        "SELECT * FROM bidding WHERE email = ?",[email],
+        (err,user)=>{
+            if(err){
+                res.status(500).json({
+                    massage : "Database error"
+                })
+                return
+            }
+            if(!user){
+                res.status(404).json({
+                    massage : "User not Exist"
+                })
+                return
+            }
+
+            biddingTable.run(
+                "DELETE FROM bidding WHERE email = ?",[email],
+                (err)=>{
+                    if(err){
+                        res.status(500).json({
+                            massage : "Database error"
+                        })
+                        return
+                    }
+                    res.json({
+                        massage : "Alumni bid history delete successfully"
+                    })
+                }
+            )
+        }
+    )
+}

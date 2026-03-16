@@ -8,7 +8,6 @@ db.run(`
     lastName TEXT NOT NULL,
     image TEXT,
     bidAmount INTEGER NOT NULL,
-    bidTime DATETIME DEFAULT CURRENT_TIMESTAMP,
     status TEXT DEFAULT 'pending',
     winAmount INTEGER NOT NULL
   )
