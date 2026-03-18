@@ -1,5 +1,53 @@
 import biddingTable from "../models/biddingTable.js"
 import bidhistoryTable from "../models/bidhistoryTable.js"
+import alumniTable from "../models/alumniTable.js"
+import nodemailer from "nodemailer";
+import db from "../config/database.js";
+
+const transporter = nodemailer.createTransport({
+
+    service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+    auth: {
+        user: "seniya.20210647@iit.ac.lk",
+        pass: process.env.GMAIL_APP_PASSWORD
+    }
+});
+
+export function sendBidNotification(email, firstName, action, bidAmount) {
+    
+    const subject = action === 'placed' ? 'Bid Placed Successfully' : 'Bid Updated Successfully';
+    const text = `Dear ${firstName},\n\nYour bid of $${bidAmount} has been ${action}.\n\nBest regards,\nBidding System`;
+
+    transporter.sendMail({
+        from: "seniya.20210647@iit.ac.lk",
+        to: email,
+        subject: subject,
+        text: text
+    }, (err, info) => {
+        if (err) {
+            console.log(err);
+        }
+    });
+}
+
+export function sendWinNotification(email, firstName, bidAmount) {
+    const subject = 'Congratulations! You Won the Bid';
+    const text = `Dear ${firstName},\n\nCongratulations! Your bid of $${bidAmount} has won.\n\nBest regards,\nBidding System`;
+
+    transporter.sendMail({
+        from: "seniya.20210647@iit.ac.lk",
+        to: email,
+        subject: subject,
+        text: text
+    }, (err, info) => {
+        if (err) {
+            console.log(err);
+        }
+    });
+}
 
 export function placeBidding(req,res){
 
@@ -9,53 +57,144 @@ export function placeBidding(req,res){
     const image = req.user.image;
     const bidAmount = req.body.bidAmount;
     
-    
-
-if (req.user.role !== 'alumni') {
+    if (req.user.role !== 'alumni') {
         res.status(401).json({
             message: "Please Login as Alumni"
         });
         return;
     }
 
-    biddingTable.get(
-        "SELECT * FROM winner WHERE email = ?", [email],
+    if (!bidAmount || bidAmount <= 0) {
+        res.status(400).json({
+            message: "Invalid bid amount"
+        });
+        return;
+    }
+    
+    alumniTable.get(
+        "SELECT * FROM alumni WHERE email = ?", [email],
         (err, user) => {
             if (err) {
                 res.status(500).json({
-                    massage: "Bid placing error"
+                    message: "Bid placing error"
+                });
+                return;
+            }
+            if(!user){
+                res.status(401).json({
+                    message: "Please create alumni profile"
                 });
                 return;
             }
 
-            const winAmount = user?.winAmount ?? 0;
-            if (winAmount >= 3) {
-                res.status(403).json({
-                    massage: "You have reached the amount of winning per month"
-                });
-                return;
-            }
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth() + 1;
+            const currentYear = currentDate.getFullYear();
 
-            // proceed with bid insertion
-            biddingTable.run(
-                `INSERT INTO bidding (email, firstName, lastName, image, bidAmount, status) VALUES (?, ?, ?, ?, ?, ?)`,
-                [email, firstName, lastName, image, bidAmount, "pending"],
-                (err) => {
+            // Check monthly win limit
+            biddingTable.all(
+                "SELECT * FROM bidding WHERE email = ? AND status = 'won' AND month = ? AND year = ?",
+                [email, currentMonth, currentYear],
+                (err, wins) => {
                     if (err) {
                         res.status(500).json({
-                            massage: "User bidding error"
+                            message: "Bid placing error"
                         });
                         return;
                     }
-                    res.json({
-                        massage: "Bidding have placed successfully"
-                    });
+
+                    if (wins.length >= 3) {
+                        res.status(403).json({
+                            message: "You have reached the 3-win limit for this month"
+                        });
+                        return;
+                    }
+
+                    // Check if user has active bid
+                    biddingTable.get(
+                        "SELECT * FROM bidding WHERE email = ? AND status = 'active'",
+                        [email],
+                        (err, existingBid) => {
+                            if (err) {
+                                res.status(500).json({
+                                    message: "Bid placing error"
+                                });
+                                return;
+                            }
+
+                            if (existingBid) {
+                                if (bidAmount <= existingBid.bidAmount) {
+                                    res.status(400).json({
+                                        message: "New bid must be higher than current bid"
+                                    });
+                                    return;
+                                }
+                                // Update existing bid//chekkkkkkkkkkkkkkkkkkkkkkkk
+                                biddingTable.run(
+                                    `UPDATE bidding SET bidAmount = ?, bidDate = CURRENT_TIMESTAMP WHERE id = ?`, 
+                                    [bidAmount, existingBid.id],
+                                    (err) => {
+                                        if (err) {
+                                            res.status(500).json({
+                                                message: "Bid update error"
+                                            });
+                                            return;
+                                        }
+                                        // Insert into history
+                                        bidhistoryTable.run(
+                                            `INSERT INTO bidhistory (email, firstName, lastName, bidAmount, action) VALUES (?, ?, ?, ?, ?)`,
+                                            [email, firstName, lastName, bidAmount, 'updated'],
+                                            (err) => {
+                                                if (err) {
+                                                    console.log(err);
+                                                }
+                                            }
+                                        );
+                                        // Send email
+                                        sendBidNotification(email, firstName, 'updated', bidAmount);
+                                        res.json({
+                                            message: "Bid updated successfully"
+                                        });
+                                    }
+                                );
+                            } else {
+                                // Insert new bid
+                                biddingTable.run(
+                                    `INSERT INTO bidding (email, firstName, lastName, image, bidAmount, status, month, year) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                                    [email, firstName, lastName, image, bidAmount, "active", currentMonth, currentYear],
+                                    (err) => {
+                                        if (err) {
+                                            res.status(500).json({
+                                                message: "Bid placing error"
+                                            });
+                                            return;
+                                        }
+                                        // Insert into history
+                                        bidhistoryTable.run(
+                                            `INSERT INTO bidhistory (email, firstName, lastName, bidAmount, action) VALUES (?, ?, ?, ?, ?)`,
+                                            [email, firstName, lastName, bidAmount, 'placed'],
+                                            (err) => {
+                                                if (err) console.log(err);
+                                            }
+                                        );
+                                        // Send email
+                                        sendBidNotification(email, firstName, 'placed', bidAmount);
+                                        res.json({
+                                            message: "Bid placed successfully"
+                                        });
+                                    }
+                                );
+                            }
+                        }
+                    );
                 }
             );
         }
     );
+}
 
-
+export function updateBid(req,res){
+    
 }
 
 export function viewBiddingAlumni(req, res) {
@@ -68,10 +207,15 @@ export function viewBiddingAlumni(req, res) {
         return;
     }
 
-    biddingTable.all(
-        "SELECT * FROM bidding WHERE email = ?",
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+
+    // Get current bid
+    biddingTable.get(
+        "SELECT * FROM bidding WHERE email = ? AND status = 'active'",
         [email],
-        (err, rows) => {
+        (err, currentBid) => {
             if (err) {
                 res.status(500).json({
                     message: "Failed to fetch bidding data"
@@ -79,74 +223,105 @@ export function viewBiddingAlumni(req, res) {
                 return;
             }
 
-            if (!rows || rows.length === 0) {
-                res.status(404).json({
-                    message: "You haven't placed any bids yet"
-                });
-                return;
-            }
-
-            res.json({
-                data: rows
-            });
-        }
-    );
-}
-
-
-export function selectWinner(req, res) {
-    // Find the highest bid among pending bids
-    biddingTable.get(
-        "SELECT * FROM bidding WHERE status = 'pending' ORDER BY bidAmount DESC LIMIT 1",
-        (err, row) => {
-            if (err) {
-                res.status(500).json({
-                    message: "Error selecting winner"
-                });
-                return;
-            }
-
-            if (!row) {
-                res.status(404).json({
-                    message: "No pending bids found"
-                });
-                return;
-            }
-
-            // Update the winning bid status to 'won'
-            biddingTable.run(
-                "UPDATE bidding SET status = 'won' WHERE id = ?",
-                [row.id],
-                (updateErr) => {
-                    if (updateErr) {
+            // Get monthly wins
+            biddingTable.all(
+                "SELECT * FROM bidding WHERE email = ? AND status = 'won' AND month = ? AND year = ?",
+                [email, currentMonth, currentYear],
+                (err, wins) => {
+                    if (err) {
                         res.status(500).json({
-                            message: "Error updating bid status"
+                            message: "Failed to fetch bidding data"
                         });
                         return;
                     }
 
-                    // Record the winner in winnerTable
-                    biddingTable.run(
-                        "INSERT INTO winner (email, winAmount, winDate) VALUES (?, ?, ?)",
-                        [row.email, row.bidAmount, new Date().toISOString()],
-                        (insertErr) => {
-                            if (insertErr) {
+                    const remainingSlots = 3 - wins.length;
+
+                    // Get bid history
+                    bidhistoryTable.all(
+                        "SELECT * FROM bidhistory WHERE email = ? ORDER BY bidDate DESC",
+                        [email],
+                        (err, history) => {
+                            if (err) {
                                 res.status(500).json({
-                                    message: "Error recording winner"
+                                    message: "Failed to fetch bidding data"
                                 });
                                 return;
                             }
 
                             res.json({
-                                message: "Winner selected successfully",
-                                winner: {
-                                    email: row.email,
-                                    bidAmount: row.bidAmount,
-                                    winDate: new Date().toISOString()
-                                }
+                                currentBid: currentBid || null,
+                                monthlyWins: wins.length,
+                                remainingSlots: remainingSlots,
+                                bidHistory: history
                             });
                         }
                     );
+                }
+            );
+        }
+    );
+}
+
+
+
+export function selectWinner() {
+    // Get the highest active bid
+    biddingTable.get(
+        "SELECT * FROM bidding WHERE status = 'active' ORDER BY bidAmount DESC LIMIT 1",
+        [],
+        (err, winner) => {
+            if (err) {
+                console.log("Error selecting winner:", err);
+                return;
+            }
+
+            if (!winner) {
+                console.log("No active bids to select winner");
+                return;
+            }
+
+            // Mark as won
+            biddingTable.run(
+                "UPDATE bidding SET status = 'won' WHERE id = ?",
+                [winner.id],
+                (err) => {
+                    if (err) {
+                        console.log("Error updating winner status:", err);
+                        return;
+                    }
+
+                    // Update alumni bidWins
+                    alumniTable.run(
+                        "UPDATE alumni SET bidWins = bidWins + 1 WHERE email = ?",
+                        [winner.email],
+                        (err) => {
+                            if (err) console.log("Error updating bidWins:", err);
+                        }
+                    );
+
+                    // Insert into history
+                    bidhistoryTable.run(
+                        `INSERT INTO bidhistory (email, firstName, lastName, bidAmount, action) VALUES (?, ?, ?, ?, ?)`,
+                        [winner.email, winner.firstName, winner.lastName, winner.bidAmount, 'won'],
+                        (err) => {
+                            if (err) console.log(err);
+                        }
+                    );
+
+                    // Send notification
+                    sendWinNotification(winner.email, winner.firstName, winner.bidAmount);
+
+                    // Optionally, set other active bids to 'lost'
+                    biddingTable.run(
+                        "UPDATE bidding SET status = 'lost' WHERE status = 'active' AND id != ?",
+                        [winner.id],
+                        (err) => {
+                            if (err) console.log("Error updating lost bids:", err);
+                        }
+                    );
+
+                    console.log(`Winner selected: ${winner.email} with bid $${winner.bidAmount}`);
                 }
             );
         }
@@ -189,3 +364,29 @@ export function deleteBids(req,res){
         }
     )
 }
+
+
+
+export function clearBids(req, res) {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ message: "Admin only" });
+  }
+
+  db.serialize(() => {
+    db.run("DELETE FROM bidding", (err) => {
+      if (err) return res.status(500).json({ message: "Delete bidding failed", error: err.message });
+
+      db.run("DELETE FROM bidhistory", (err2) => {
+        if (err2) return res.status(500).json({ message: "Delete bidhistory failed", error: err2.message });
+
+        // optional: reset AUTOINCREMENT sequence
+        db.run("DELETE FROM sqlite_sequence WHERE name IN ('bidding', 'bidhistory')", (err3) => {
+          if (err3) console.warn("sqlite_sequence reset failed", err3.message);
+
+          res.json({ message: "Cleared bidding and bidhistory tables" });
+        });
+      });
+    });
+  });
+}
+

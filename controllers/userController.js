@@ -23,6 +23,7 @@ export function Createuser(req ,res) {
     const hashedPassword = bcrypt.hashSync(data.password,10);
     const universityDomain1 = "@westminster.ac.uk";
     const universityDomain2 = "@iit.ac.lk";
+    const universityDomain3 = "@gmail.com"; //testing purpose only
 
     try{
     userTable.get(
@@ -39,13 +40,15 @@ export function Createuser(req ,res) {
                     massage : "User already exists"
                 })
                 return
-            }else{
+            }
+            else{
 
-                if (!data.email.endsWith(universityDomain1) && !data.email.endsWith(universityDomain2)) {
+                if (!data.email.endsWith(universityDomain1) && !data.email.endsWith(universityDomain2) && !data.email.endsWith(universityDomain3)) {
                     return res.status(400).json({
                         message: "Only university email allowed"
                     });
-                }else{
+                }
+                else{
                 userTable.run(
                     `INSERT INTO users (email, firstName, lastName, password, role, image) VALUES (?, ?, ?, ?, ?, ?)`,
                     [data.email, data.firstName, data.lastName, hashedPassword, data.role || "alumni", data.image || "default.jpg" ],

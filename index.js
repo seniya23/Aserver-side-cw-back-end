@@ -5,6 +5,8 @@ import alumniRouter from './routes/alumniRouter.js';
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import biddingRouter from './routes/biddingRouter.js';
+import cron from 'node-cron';
+import { selectWinner } from './controllers/biddingsystemController.js';
 
 dotenv.config();
 const app = express();
@@ -45,5 +47,11 @@ app.use("/api/bidding",biddingRouter);
 
 app.listen(process.env.PORT, () => {
   console.log('Server is running on http://localhost:3000');
+});
+
+// Schedule winner selection at midnight every day
+cron.schedule('0 0 * * *', () => {
+  console.log('Running automated winner selection...');
+  selectWinner();
 });
 

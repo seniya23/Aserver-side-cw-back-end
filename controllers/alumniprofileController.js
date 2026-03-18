@@ -106,8 +106,15 @@ export function Getalumniprofile(req,res){
                 res.json({
                     massage : user
                 });
+                console.log(user);
+
+            }else{
+                if(!user){
+                    res.status(401).json({ message: "User not found" });
+                    return;
+                }
             }
-            console.log(user);
+            
         }
     );
 }
