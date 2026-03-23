@@ -4,6 +4,8 @@ import alumniTable from "../models/alumniTable.js"
 import nodemailer from "nodemailer";
 import db from "../config/database.js";
 
+let isSelectingWinner = false;
+
 const transporter = nodemailer.createTransport({
 
     service: 'gmail',
@@ -123,40 +125,12 @@ export function placeBidding(req,res){
                             }
 
                             if (existingBid) {
-                                if (bidAmount <= existingBid.bidAmount) {
+                                
                                     res.status(400).json({
-                                        message: "New bid must be higher than current bid"
+                                        message: "You have an active bid"
                                     });
                                     return;
-                                }
-                                // Update existing bid//chekkkkkkkkkkkkkkkkkkkkkkkk
-                                biddingTable.run(
-                                    `UPDATE bidding SET bidAmount = ?, bidDate = CURRENT_TIMESTAMP WHERE id = ?`, 
-                                    [bidAmount, existingBid.id],
-                                    (err) => {
-                                        if (err) {
-                                            res.status(500).json({
-                                                message: "Bid update error"
-                                            });
-                                            return;
-                                        }
-                                        // Insert into history
-                                        bidhistoryTable.run(
-                                            `INSERT INTO bidhistory (email, firstName, lastName, bidAmount, action) VALUES (?, ?, ?, ?, ?)`,
-                                            [email, firstName, lastName, bidAmount, 'updated'],
-                                            (err) => {
-                                                if (err) {
-                                                    console.log(err);
-                                                }
-                                            }
-                                        );
-                                        // Send email
-                                        sendBidNotification(email, firstName, 'updated', bidAmount);
-                                        res.json({
-                                            message: "Bid updated successfully"
-                                        });
-                                    }
-                                );
+                                
                             } else {
                                 // Insert new bid
                                 biddingTable.run(
@@ -194,7 +168,96 @@ export function placeBidding(req,res){
 }
 
 export function updateBid(req,res){
+    const email = req.user.email;
+    const firstName = req.user.firstName;
+    const lastName = req.user.lastName;
+    const bidAmount = req.body.bidAmount;
     
+    if (req.user.role !== 'alumni') {
+        res.status(401).json({
+            message: "Please Login as Alumni"
+        });
+        return;
+    }
+
+    if (!bidAmount || bidAmount <= 0) {
+        res.status(400).json({
+            message: "Invalid bid amount"
+        });
+        return;
+    }
+    
+    alumniTable.get(
+        "SELECT * FROM alumni WHERE email = ?", [email],
+        (err, user) => {
+            if (err) {
+                res.status(500).json({
+                    message: "Bid placing error"
+                });
+                return;
+            }
+            if(!user){
+                res.status(401).json({
+                    message: "Please create alumni profile"
+                });
+                return;
+            }
+        }
+    )
+
+            const currentDate = new Date();
+        
+            // Check if user has active bid
+                    biddingTable.get(
+                        "SELECT * FROM bidding WHERE email = ? AND status = 'active'",
+                        [email],
+                        (err, existingBid) => {
+                            if (err) {
+                                res.status(500).json({
+                                    message: "Bid placing error"
+                                });
+                                return;
+                            }
+
+                            if (existingBid) {
+                                if (bidAmount <= existingBid.bidAmount) {
+                                    res.status(400).json({
+                                        message: "New bid must be higher than current bid"
+                                    });
+                                    return;
+                                }
+                                // Update existing bid//chekkkkkkkkkkkkkkkkkkkkkkkk
+                                biddingTable.run(
+                                    `UPDATE bidding SET bidAmount = ?, bidDate = CURRENT_TIMESTAMP WHERE id = ?`, 
+                                    [bidAmount, existingBid.id],
+                                    (err) => {
+                                        if (err) {
+                                            res.status(500).json({
+                                                message: "Bid update error"
+                                            });
+                                            return;
+                                        }
+                                        // Insert into history
+                                        bidhistoryTable.run(
+                                            `INSERT INTO bidhistory (email, firstName, lastName, bidAmount, action) VALUES (?, ?, ?, ?, ?)`,
+                                            [email, firstName, lastName, bidAmount, 'updated'],
+                                            (err) => {
+                                                if (err) {
+                                                    console.log(err);
+                                                }
+                                            }
+                                        );
+                                        // Send email
+                                        sendBidNotification(email, firstName, 'updated', bidAmount);
+                                        res.json({
+                                            message: "Bid updated successfully"
+                                        });
+                                    }
+                                );
+                            
+                            }
+                    }
+                )
 }
 
 export function viewBiddingAlumni(req, res) {
@@ -266,6 +329,12 @@ export function viewBiddingAlumni(req, res) {
 
 
 export function selectWinner() {
+    if (isSelectingWinner) {
+        console.log("selectWinner is already running; skipping duplicate execution.");
+        return;
+    }
+    isSelectingWinner = true;
+
     // Get the highest active bid
     biddingTable.get(
         "SELECT * FROM bidding WHERE status = 'active' ORDER BY bidAmount DESC LIMIT 1",
@@ -273,21 +342,30 @@ export function selectWinner() {
         (err, winner) => {
             if (err) {
                 console.log("Error selecting winner:", err);
+                isSelectingWinner = false;
                 return;
             }
 
             if (!winner) {
                 console.log("No active bids to select winner");
+                isSelectingWinner = false;
                 return;
             }
 
-            // Mark as won
+            // Mark as won only if still active (idempotent guard)
             biddingTable.run(
-                "UPDATE bidding SET status = 'won' WHERE id = ?",
+                "UPDATE bidding SET status = 'won' WHERE id = ? AND status = 'active'",
                 [winner.id],
-                (err) => {
+                function (err) {
                     if (err) {
                         console.log("Error updating winner status:", err);
+                        isSelectingWinner = false;
+                        return;
+                    }
+
+                    if (this.changes === 0) {
+                        console.log("Winner has already been processed by another run.");
+                        isSelectingWinner = false;
                         return;
                     }
 
@@ -296,7 +374,9 @@ export function selectWinner() {
                         "UPDATE alumni SET bidWins = bidWins + 1 WHERE email = ?",
                         [winner.email],
                         (err) => {
-                            if (err) console.log("Error updating bidWins:", err);
+                            if (err) {
+                                console.log("Error updating bidWins:", err);
+                            }
                         }
                     );
 
@@ -305,27 +385,61 @@ export function selectWinner() {
                         `INSERT INTO bidhistory (email, firstName, lastName, bidAmount, action) VALUES (?, ?, ?, ?, ?)`,
                         [winner.email, winner.firstName, winner.lastName, winner.bidAmount, 'won'],
                         (err) => {
-                            if (err) console.log(err);
+                            if (err) {
+                                console.log(err);
+                            }
                         }
                     );
 
                     // Send notification
                     sendWinNotification(winner.email, winner.firstName, winner.bidAmount);
 
-                    // Optionally, set other active bids to 'lost'
+                    // Set other active bids to 'lost'
                     biddingTable.run(
                         "UPDATE bidding SET status = 'lost' WHERE status = 'active' AND id != ?",
                         [winner.id],
                         (err) => {
-                            if (err) console.log("Error updating lost bids:", err);
+                            if (err) {
+                                console.log("Error updating lost bids:", err);
+                            }
                         }
                     );
 
                     console.log(`Winner selected: ${winner.email} with bid $${winner.bidAmount}`);
+                    isSelectingWinner = false;
                 }
             );
         }
     );
+}
+
+
+export function bidHistory(req,res){
+
+    const email = req.user.email;
+
+    if (req.user.role !== 'alumni' && req.user.role !== 'admin') {
+        res.status(401).json({
+            message: "Please Login as Alumni"
+        });
+        return;
+    }
+
+
+    bidhistoryTable.get(
+        "SELECT * FROM bidhistory WHERE email = ?",[email],
+        (err,history)=>{
+            if(err){
+                res.status(500).json({
+                    massage : "Database error"
+                })
+                return
+            }
+            res.json({
+                    massage : history
+                });
+        }
+    )
 }
 
 export function deleteBids(req,res){

@@ -55,3 +55,8 @@ cron.schedule('0 0 * * *', () => {
   selectWinner();
 });
 
+// cron.schedule('* * * * *', () => {
+//   console.log('Running automated winner selection (test every minute)...');
+//   selectWinner();
+// });
+
