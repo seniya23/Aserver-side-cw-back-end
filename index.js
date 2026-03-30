@@ -7,9 +7,46 @@ import dotenv from "dotenv";
 import biddingRouter from './routes/biddingRouter.js';
 import cron from 'node-cron';
 import { selectWinner } from './controllers/biddingsystemController.js';
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
 
 dotenv.config();
 const app = express();
+
+// Swagger configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Alumni Bidding System API',
+      version: '1.0.0',
+      description: 'API documentation for the Alumni Bidding System backend',
+    },
+    servers: [
+      {
+        url: `http://localhost:${process.env.PORT || 3000}`,
+        description: 'Development server',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+  },
+  apis: ['./routes/*.js', './controllers/*.js'], // Paths to files containing OpenAPI definitions
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 app.use(cors());
 app.use(express.json());
@@ -45,13 +82,10 @@ app.use("/api/users",userRouter);
 app.use("/api/alumni",alumniRouter);
 app.use("/api/bidding",biddingRouter);
 
-app.listen(process.env.PORT, () => {
-  console.log('Server is running on http://localhost:3000');
-});
-
-// Schedule winner selection at midnight every day
+// Schedule winner selection to run every day at midnight
+// This automated process ensures bidding rounds are completed regularly
 cron.schedule('0 0 * * *', () => {
-  console.log('Running automated winner selection...');
+  console.log('Running scheduled winner selection...');
   selectWinner();
 });
 
@@ -59,4 +93,16 @@ cron.schedule('0 0 * * *', () => {
 //   console.log('Running automated winner selection (test every minute)...');
 //   selectWinner();
 // });
+
+// Swagger documentation route
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+app.listen(process.env.PORT, () => {
+  console.log('Server is running on http://localhost:3000');
+  console.log('API Documentation available at http://localhost:3000/api-docs');
+});
+
+
+
+
 

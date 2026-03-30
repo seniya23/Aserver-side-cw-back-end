@@ -84,7 +84,7 @@ export function placeBidding(req,res){
             }
             if(!user){
                 res.status(401).json({
-                    message: "Please create alumni profile"
+                    message: "Please Login as Alumni"
                 });
                 return;
             }
@@ -265,7 +265,7 @@ export function viewBiddingAlumni(req, res) {
 
     if (req.user.role !== 'alumni' && req.user.role !== 'admin') {
         res.status(401).json({
-            message: "Please Login as Alumni"
+            message: "Unauthorized"
         });
         return;
     }
@@ -352,7 +352,7 @@ export function selectWinner() {
                 return;
             }
 
-            // Mark as won only if still active (idempotent guard)
+            // Mark as won only if still active
             biddingTable.run(
                 "UPDATE bidding SET status = 'won' WHERE id = ? AND status = 'active'",
                 [winner.id],
@@ -444,6 +444,13 @@ export function bidHistory(req,res){
 
 export function deleteBids(req,res){
     const email =  req.params.email;
+
+    if (req.user.role !== 'admin') {
+        res.status(401).json({
+            message: "Contact Admin"
+        });
+        return;
+    }
 
     biddingTable.get(
         "SELECT * FROM bidding WHERE email = ?",[email],

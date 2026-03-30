@@ -94,13 +94,13 @@ export function Loginuser(req,res){
                 return
             }
             if(!user){
-                res.status(404).json({
+                res.status(401).json({
                     massage : "Please check password or email"
                 })
                 return
             }
             if(user.isBlocked == 1){
-                res.status(404).json({
+                res.status(403).json({
                     massage : "User is block please contact admin"
                 })
                 return
@@ -169,9 +169,23 @@ export function Isblocked(req,res){
                 })
                 return
             }
-            res.json({
+            if(isblocked == 1){
+                res.json({
                 massage : "User blocked status updated successfully"
             })
+            }
+            if(isblocked == 0){
+                res.json({
+                massage : "User unblocked status updated successfully"
+            })
+            }
+            if(isblocked !== 1 && isblocked !== 0){
+                res.status(500).json({
+                    massage : "Couldn't update status"
+                })
+                return
+            }
+            
         }
     )
 }
@@ -204,7 +218,7 @@ export function Userdelete(req,res){
             }
             if(!user){
                 res.status(404).json({
-                    massage : "User not Exist"
+                    massage : "User not found"
                 })
                 return
             }
@@ -241,7 +255,7 @@ export function Sendotp(req,res){
             }
             if(!user){
                 res.status(404).json({
-                    massage : "User not Exist"
+                    massage : "User not found"
                 })
                 return
             }
@@ -311,7 +325,7 @@ export function Otpverify_Passwordreset(req, res){
                 return
             }
             if(!otpRecord){
-                res.status(404).json({
+                res.status(400).json({
                     message: "OTP not found or expired"
                 })
                 return
