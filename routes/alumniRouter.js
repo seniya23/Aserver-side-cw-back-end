@@ -18,38 +18,33 @@ const alumniRouter = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - email
- *               - name
- *               - graduationYear
- *               - currentPosition
- *               - company
- *               - location
- *               - skills
+ *               - image
+ *               - degree
+ *               - employmentStartDate
+ *               - shortCourse
+ *               - professionalLicences
+ *               - linkedinUrl
  *               - bio
  *             properties:
- *               email:
+ *               image:
  *                 type: string
- *                 format: email
- *                 description: Alumni's email address
- *               name:
+ *                 description: image of alumni
+ *               degree:
  *                 type: string
- *                 description: Full name
- *               graduationYear:
- *                 type: integer
  *                 description: Year of graduation
- *               currentPosition:
+ *               employmentStartDate:
  *                 type: string
- *                 description: Current job position
- *               company:
- *                 type: string
- *                 description: Current company
- *               location:
- *                 type: string
- *                 description: Current location
- *               skills:
+ *                 description: Current job start date
+ *               shortCourse:
  *                 type: array
  *                 items:
  *                   type: string
+ *                 description: other completed courses
+ *               professionalLicences:
+ *                 type: string
+ *                 description: prof license
+ *               linkedinUrl:
+ *                 type: string
  *                 description: Array of skills
  *               bio:
  *                 type: string
@@ -61,10 +56,10 @@ const alumniRouter = express.Router();
  *           application/json:
  *             example:
  *               message: "Alumni profile created successfully"
- *       400:
- *         description: Validation error
+ *       409:
+ *         description: User already has a profile
  *       401:
- *         description: Unauthorized
+ *         description: Please Login
  *       500:
  *         description: Database error
  */
@@ -93,17 +88,22 @@ alumniRouter.post("/", Createalumniprofile)
  *           application/json:
  *             example:
  *               email: "alumni@example.com"
- *               name: "John Doe"
- *               graduationYear: 2020
- *               currentPosition: "Software Engineer"
- *               company: "Tech Corp"
- *               location: "London"
- *               skills: ["JavaScript", "React", "Node.js"]
+ *               firstName: "firstname"
+ *               lastName: "lastname"
+ *               degree: "degree"
+ *               employmentStartDate: "2025.1.25"
+ *               employmentEndDate: "null"
+ *               shortCourses: ["JavaScript", "React", "Node.js"]
+ *               professionalLicences: "professionalLicences"
+ *               professionalCertifications: "null"
+ *               linkedinUrl: "linkedinUrl"
  *               bio: "Experienced software engineer..."
+ *               bidWins: 1
+ *               profileCompletionPercentage: 62
  *       401:
- *         description: Unauthorized
+ *         description: User not found
  *       404:
- *         description: Alumni profile not found
+ *         description: User not found
  *       500:
  *         description: Database error
  */
@@ -132,20 +132,8 @@ alumniRouter.get("/:email", Getalumniprofile)
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               employmentEndDate:
  *                 type: string
- *               graduationYear:
- *                 type: integer
- *               currentPosition:
- *                 type: string
- *               company:
- *                 type: string
- *               location:
- *                 type: string
- *               skills:
- *                 type: array
- *                 items:
- *                   type: string
  *               bio:
  *                 type: string
  *     responses:
@@ -156,11 +144,13 @@ alumniRouter.get("/:email", Getalumniprofile)
  *             example:
  *               message: "Alumni profile updated successfully"
  *       401:
- *         description: Unauthorized
+ *         description: Please login
  *       404:
  *         description: Alumni profile not found
  *       500:
  *         description: Database error
+ *       403:
+ *         description: Forbidden
  */
 alumniRouter.put("/:email", Updatealumniprofile)
 

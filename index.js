@@ -52,6 +52,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req,res,next)=>{
+   
     const authorizationHeader = req.header("Authorization")
 
     if(authorizationHeader){
@@ -67,7 +68,7 @@ app.use((req,res,next)=>{
                     next()
                 }else{
                     res.status(401).json({
-                        massage : "Invalid token"
+                        message : "Invalid token"
                     })
                     console.log("Invalid token")
                 }
@@ -82,8 +83,7 @@ app.use("/api/users",userRouter);
 app.use("/api/alumni",alumniRouter);
 app.use("/api/bidding",biddingRouter);
 
-// Schedule winner selection to run every day at midnight
-// This automated process ensures bidding rounds are completed regularly
+// Schedule winner selection to run every day at 00.00
 cron.schedule('0 0 * * *', () => {
   console.log('Running scheduled winner selection...');
   selectWinner();
@@ -94,7 +94,6 @@ cron.schedule('0 0 * * *', () => {
 //   selectWinner();
 // });
 
-// Swagger documentation route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.listen(process.env.PORT, () => {

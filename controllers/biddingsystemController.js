@@ -132,7 +132,7 @@ export function placeBidding(req,res){
                                     return;
                                 
                             } else {
-                                // Insert new bid
+                               
                                 biddingTable.run(
                                     `INSERT INTO bidding (email, firstName, lastName, image, bidAmount, status, month, year) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                                     [email, firstName, lastName, image, bidAmount, "active", currentMonth, currentYear],
@@ -143,7 +143,7 @@ export function placeBidding(req,res){
                                             });
                                             return;
                                         }
-                                        // Insert into history
+                                        
                                         bidhistoryTable.run(
                                             `INSERT INTO bidhistory (email, firstName, lastName, bidAmount, action) VALUES (?, ?, ?, ?, ?)`,
                                             [email, firstName, lastName, bidAmount, 'placed'],
@@ -151,7 +151,7 @@ export function placeBidding(req,res){
                                                 if (err) console.log(err);
                                             }
                                         );
-                                        // Send email
+                                       
                                         sendBidNotification(email, firstName, 'placed', bidAmount);
                                         res.json({
                                             message: "Bid placed successfully"
@@ -175,7 +175,7 @@ export function updateBid(req,res){
     
     if (req.user.role !== 'alumni') {
         res.status(401).json({
-            message: "Please Login as Alumni"
+            message: "Unauthorized"
         });
         return;
     }
@@ -198,7 +198,7 @@ export function updateBid(req,res){
             }
             if(!user){
                 res.status(401).json({
-                    message: "Please create alumni profile"
+                    message: "Unauthorized"
                 });
                 return;
             }
@@ -226,7 +226,7 @@ export function updateBid(req,res){
                                     });
                                     return;
                                 }
-                                // Update existing bid//chekkkkkkkkkkkkkkkkkkkkkkkk
+                                // Update existing bid
                                 biddingTable.run(
                                     `UPDATE bidding SET bidAmount = ?, bidDate = CURRENT_TIMESTAMP WHERE id = ?`, 
                                     [bidAmount, existingBid.id],
@@ -237,7 +237,7 @@ export function updateBid(req,res){
                                             });
                                             return;
                                         }
-                                        // Insert into history
+                                      
                                         bidhistoryTable.run(
                                             `INSERT INTO bidhistory (email, firstName, lastName, bidAmount, action) VALUES (?, ?, ?, ?, ?)`,
                                             [email, firstName, lastName, bidAmount, 'updated'],
@@ -247,7 +247,7 @@ export function updateBid(req,res){
                                                 }
                                             }
                                         );
-                                        // Send email
+                                      
                                         sendBidNotification(email, firstName, 'updated', bidAmount);
                                         res.json({
                                             message: "Bid updated successfully"
@@ -274,7 +274,7 @@ export function viewBiddingAlumni(req, res) {
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
 
-    // Get current bid
+   
     biddingTable.get(
         "SELECT * FROM bidding WHERE email = ? AND status = 'active'",
         [email],
@@ -300,7 +300,7 @@ export function viewBiddingAlumni(req, res) {
 
                     const remainingSlots = 3 - wins.length;
 
-                    // Get bid history
+                    
                     bidhistoryTable.all(
                         "SELECT * FROM bidhistory WHERE email = ? ORDER BY bidDate DESC",
                         [email],
@@ -394,7 +394,7 @@ export function selectWinner() {
                     // Send notification
                     sendWinNotification(winner.email, winner.firstName, winner.bidAmount);
 
-                    // Set other active bids to 'lost'
+                    // Set other active bids to lost
                     biddingTable.run(
                         "UPDATE bidding SET status = 'lost' WHERE status = 'active' AND id != ?",
                         [winner.id],
@@ -411,6 +411,48 @@ export function selectWinner() {
             );
         }
     );
+}
+
+export function viewbidWinner(req, res){
+     biddingTable.get(
+        "SELECT * FROM bidding WHERE status = 'won' ORDER BY bidDate DESC LIMIT 1",
+        [],
+        (err, winner) => {
+            if (err) {
+                res.status(400).json({
+                    message: "data fetching error"
+                });
+                return;
+            }
+
+            if (!winner) {
+                res.status(400).json({
+                    message: "No active winner"
+                });
+                return;
+            }
+
+            if(winner){
+                alumniTable.get(
+                    "SELECT * FROM alumni WHERE email = ?",
+                    [winner.email],
+                    (err, alumni) => {
+                        if (err) {
+                            res.status(400).json({
+                                        message: "data fetching error"
+                                    });
+                                    return;
+                        }
+                        if (alumni) {
+                            res.json({
+                                message: alumni
+                            });
+                        } 
+                    }
+                )
+            }
+        }
+    )
 }
 
 
@@ -445,9 +487,9 @@ export function bidHistory(req,res){
 export function deleteBids(req,res){
     const email =  req.params.email;
 
-    if (req.user.role !== 'admin') {
+    if (!req.user || req.user.role !== 'admin') {
         res.status(401).json({
-            message: "Contact Admin"
+            message: "Unauthorized"
         });
         return;
     }
@@ -478,7 +520,7 @@ export function deleteBids(req,res){
                         return
                     }
                     res.json({
-                        massage : "Alumni bid history delete successfully"
+                        massage : "Bids deleted successfully"
                     })
                 }
             )
@@ -490,7 +532,7 @@ export function deleteBids(req,res){
 
 export function clearBids(req, res) {
   if (req.user?.role !== "admin") {
-    return res.status(403).json({ message: "Admin only" });
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   db.serialize(() => {
@@ -500,7 +542,7 @@ export function clearBids(req, res) {
       db.run("DELETE FROM bidhistory", (err2) => {
         if (err2) return res.status(500).json({ message: "Delete bidhistory failed", error: err2.message });
 
-        // optional: reset AUTOINCREMENT sequence
+        // optional: reset autoincrement sequence
         db.run("DELETE FROM sqlite_sequence WHERE name IN ('bidding', 'bidhistory')", (err3) => {
           if (err3) console.warn("sqlite_sequence reset failed", err3.message);
 

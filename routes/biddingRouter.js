@@ -1,5 +1,5 @@
 import express from "express";
-import { clearBids, deleteBids, placeBidding, selectWinner, updateBid, viewBiddingAlumni } from "../controllers/biddingsystemController.js";
+import { clearBids, deleteBids, placeBidding, selectWinner, updateBid, viewBiddingAlumni, viewbidWinner } from "../controllers/biddingsystemController.js";
 
 const biddingRouter = express.Router();
 
@@ -107,6 +107,8 @@ biddingRouter.get("/", viewBiddingAlumni)
  *         description: Unauthorized
  *       500:
  *         description: Database error
+ *       404:
+ *         description: User not Exist
  */
 biddingRouter.get("/:email", deleteBids)
 
@@ -128,7 +130,7 @@ biddingRouter.get("/:email", deleteBids)
  *       401:
  *         description: Unauthorized
  *       500:
- *         description: Database error
+ *         description: Delete bidhistory failed
  */
 biddingRouter.delete("/clear", clearBids);
 
@@ -147,13 +149,9 @@ biddingRouter.delete("/clear", clearBids);
  *           schema:
  *             type: object
  *             required:
- *               - bidId
- *               - newAmount
+ *               - bidAmount
  *             properties:
- *               bidId:
- *                 type: integer
- *                 description: ID of the bid to update
- *               newAmount:
+ *               bidAmount:
  *                 type: number
  *                 minimum: 0
  *                 description: New bid amount
@@ -165,11 +163,9 @@ biddingRouter.delete("/clear", clearBids);
  *             example:
  *               message: "Bid updated successfully"
  *       400:
- *         description: Invalid bid amount or bidding period ended
+ *         description: Invalid bid amount 
  *       401:
  *         description: Unauthorized
- *       404:
- *         description: Bid not found
  *       500:
  *         description: Database error
  */
@@ -187,33 +183,45 @@ biddingRouter.put("/",updateBid);
  *       required: true
  *       content:
  *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - alumniEmail
- *             properties:
- *               alumniEmail:
- *                 type: string
- *                 format: email
- *                 description: Email of the alumni whose bidding round to close
  *     responses:
  *       200:
  *         description: Winner selected successfully
  *         content:
  *           application/json:
  *             example:
- *               message: "Winner selected and notified"
- *               winner: {
- *                 bidderEmail: "winner@example.com",
- *                 bidAmount: 1000
- *               }
- *       400:
- *         description: No bids found or bidding still active
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Database error or email sending failed
+ *               message: "Winner selected: winner@example.com with bid $500"
+ *       
  */
 biddingRouter.post("/winner",selectWinner);
+
+/**
+ * @swagger
+ * /api/bidding/viewwinner:
+ *   post:
+ *     summary: View the current bid winner and their alumni profile
+ *     tags: [Bidding]
+ *     security: []  # No authentication required
+ *     responses:
+ *       200:
+ *         description: Winner alumni profile
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: {
+ *                 id: 1,
+ *                 email: "winner@example.com",
+ *                 firstName: "fistname",
+ *                 lastName: "lastname",
+ *                 bidWins: 2
+ *               }
+ * 
+ *       400:
+ *         description: No active winner or data fetching error
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "No active winner"
+ */
+biddingRouter.post("/viewwinner",viewbidWinner);
 
 export default biddingRouter

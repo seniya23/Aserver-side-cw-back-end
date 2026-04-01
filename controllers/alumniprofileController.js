@@ -110,7 +110,7 @@ export function Getalumniprofile(req,res){
 
             }else{
                 if(!user){
-                    res.status(401).json({ message: "User not found" });
+                    res.status(404).json({ message: "User not found" });
                     return;
                 }
             }
@@ -127,7 +127,7 @@ export function Updatealumniprofile(req, res) {
 
     const email = req.params.email;
 
-    // only owner or admin can update
+   
     if (req.user.email !== email && req.user.role !== "admin") {
         res.status(403).json({ message: "Forbidden" });
         return;
@@ -201,7 +201,7 @@ export function calculateProfileCompletion(alumniData) {
     let completedRequired = 0;
     let totalRequired = requiredFields.length;
 
-    // Check required fields (firstName and lastName are already required in table creation)
+    // Check required fields 
     requiredFields.forEach(field => {
         if (alumniData[field] && alumniData[field].trim() !== '') {
             completedRequired++;
@@ -215,7 +215,7 @@ export function calculateProfileCompletion(alumniData) {
     let optionalCompleted = 0;
     optionalFields.forEach(field => {
         if (field === 'image') {
-            // Special check for image - must not be default
+            // Special check for image must not be default
             if (alumniData[field] && alumniData[field].trim() !== '' && alumniData[field] !== 'default.jpg') {
                 optionalCompleted++;
             }
