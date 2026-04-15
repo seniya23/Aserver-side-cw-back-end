@@ -1,5 +1,5 @@
 import express from "express";
-import { Createuser, Isblocked, Loginuser, Otpverify_Passwordreset, Sendotp, Userdelete } from "../controllers/userController.js";
+import { Createuser, getAllUsers, googleLogin, Loginuser, Otpverify_Passwordreset, Sendotp, updateUserStatus, Userdelete } from "../controllers/userController.js";
 
 const userRouter = express.Router();
 
@@ -111,47 +111,47 @@ userRouter.post("/", Createuser)
  */
 userRouter.post("/login",Loginuser)
 
-/**
- * @swagger
- * /api/users/isblocked/{email}:
- *   put:
- *     summary: Block or unblock a user account
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: email
- *         required: true
- *         schema:
- *           type: string
- *           format: email
- *         description: Email of the user to block/unblock
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - isBlocked
- *             properties:
- *               isBlocked:
- *                 type: integer
- *                 description: Block status (1 to block, 0 to unblock)
- *     responses:
- *       200:
- *         description: User status updated successfully
- *         content:
- *           application/json:
- *             example:
- *               message: "User blocked successfully"
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Couldn't update status
- */
-userRouter.put("/isblocked/:email",Isblocked)
+// /**
+//  * @swagger
+//  * /api/users/isblocked/{email}:
+//  *   put:
+//  *     summary: Block or unblock a user account
+//  *     tags: [Users]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: email
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *           format: email
+//  *         description: Email of the user to block/unblock
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             required:
+//  *               - isBlocked
+//  *             properties:
+//  *               isBlocked:
+//  *                 type: integer
+//  *                 description: Block status (1 to block, 0 to unblock)
+//  *     responses:
+//  *       200:
+//  *         description: User status updated successfully
+//  *         content:
+//  *           application/json:
+//  *             example:
+//  *               message: "User blocked successfully"
+//  *       401:
+//  *         description: Unauthorized
+//  *       500:
+//  *         description: Couldn't update status
+//  */
+// userRouter.put("/isblocked/:email",Isblocked)
 
 /**
  * @swagger
@@ -262,5 +262,11 @@ userRouter.post("/verify-otp", Otpverify_Passwordreset)
  *         description: Forbidden - admin access required
  */
 userRouter.get("/user-delete/:email", Userdelete)
+
+userRouter.post("/google-login", googleLogin)
+
+userRouter.get("/all", getAllUsers)
+
+userRouter.put("/toggle-block/:email", updateUserStatus)
 
 export default userRouter

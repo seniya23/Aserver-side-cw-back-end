@@ -9,6 +9,7 @@ db.run(`
     password TEXT NOT NULL,
     role TEXT DEFAULT 'alumni',
     isBlocked INTEGER DEFAULT 0,
+    isEmailVerified INTEGER DEFAULT 0,
     image TEXT DEFAULT 'default.jpg'
   )
 `);

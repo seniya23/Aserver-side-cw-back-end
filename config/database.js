@@ -8,4 +8,7 @@ const db = new sqlite3.Database("./database.db", (err) => {
   }
 });
 
+// Set busy timeout to handle database locks
+db.configure("busyTimeout", 5000);
+
 export default db;

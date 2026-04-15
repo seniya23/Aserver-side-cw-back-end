@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import otpTable from "../models/otpTable.js";
+import axios from "axios";
 dotenv.config();
 
 const transporter = nodemailer.createTransport({
@@ -140,55 +141,55 @@ export function Loginuser(req,res){
 
 }
 
-export function Isblocked(req,res){
-    const email = req.params.email
-    const isblocked = req.body.isBlocked
+// export function Isblocked(req,res){
+//     const email = req.params.email
+//     const isblocked = req.body.isBlocked
 
-    if(!req.user){
-        res.status(401).json({
-            massage : "Unauthorized"
-        })
-        return
-    }
+//     if(!req.user){
+//         res.status(401).json({
+//             massage : "Unauthorized"
+//         })
+//         return
+//     }
 
-    if(req.user.role != "admin"){
-        res.status(403).json({
-            massage : "Forbidden - admin access required"
-        })
-        return
-    }
+//     if(req.user.role != "admin"){
+//         res.status(403).json({
+//             massage : "Forbidden - admin access required"
+//         })
+//         return
+//     }
 
-    userTable.run(
-        "UPDATE users SET isBlocked = ? WHERE email = ?",
-        [isblocked, email],
-        (err)=>{
-            if(err){
-                console.log(err);
-                res.status(500).json({
-                    massage : "Couldn't update status"
-                })
-                return
-            }
-            if(isblocked == 1){
-                res.json({
-                massage : "User blocked status updated successfully"
-            })
-            }
-            if(isblocked == 0){
-                res.json({
-                massage : "User unblocked status updated successfully"
-            })
-            }
-            if(isblocked !== 1 && isblocked !== 0){
-                res.status(500).json({
-                    massage : "Couldn't update status"
-                })
-                return
-            }
+//     userTable.run(
+//         "UPDATE users SET isBlocked = ? WHERE email = ?",
+//         [isblocked, email],
+//         (err)=>{
+//             if(err){
+//                 console.log(err);
+//                 res.status(500).json({
+//                     massage : "Couldn't update status"
+//                 })
+//                 return
+//             }
+//             if(isblocked == 1){
+//                 res.json({
+//                 massage : "User blocked status updated successfully"
+//             })
+//             }
+//             if(isblocked == 0){
+//                 res.json({
+//                 massage : "User unblocked status updated successfully"
+//             })
+//             }
+//             if(isblocked !== 1 && isblocked !== 0){
+//                 res.status(500).json({
+//                     massage : "Couldn't update status"
+//                 })
+//                 return
+//             }
             
-        }
-    )
-}
+//         }
+//     )
+// }
 
 export function Userdelete(req,res){
     const email = req.params.email
@@ -360,4 +361,179 @@ export function Otpverify_Passwordreset(req, res){
     )
 }
 
+export async function googleLogin(req, res) {
+	console.log(req.body.token);
+	try {
+		const response = await axios.get(
+			"https://www.googleapis.com/oauth2/v3/userinfo",
+			{
+				headers: {
+					Authorization: `Bearer ${req.body.token}`,
+				},
+			}
+		);
+
+		console.log(response.data); //response.data have all the information about the user from google
+
+        //check user already in database or not
+		userTable.get(
+			"SELECT * FROM users WHERE email = ?",
+			[response.data.email],
+			(err, user) => {
+				if (err) {
+					res.status(500).json({
+						message: "Database error",
+						error: err.message,
+					});
+					return;
+				}
+				if (user == null) {
+					// Insert new user
+					userTable.run(
+						`INSERT INTO users (email, firstName, lastName, password, role, isEmailVerified, image) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+						[response.data.email, response.data.given_name, response.data.family_name, "123", "alumni", 1, response.data.picture || "default.jpg"],
+						function(err) {
+							if (err) {
+								res.status(500).json({
+									message: "User creation failed",
+									error: err.message,
+								});
+								return;
+							}
+							const newUser = {
+								email: response.data.email,
+								firstName: response.data.given_name,
+								lastName: response.data.family_name,
+								role: "alumni",
+								isEmailVerified: 1,
+								image: response.data.picture || "default.jpg",
+							};
+
+							const payload = {
+								email: newUser.email,
+								firstName: newUser.firstName,
+								lastName: newUser.lastName,
+								role: newUser.role,
+								isEmailVerified: true,
+								image: newUser.image,
+							};
+
+							const token = jwt.sign(payload, process.env.JWT_SECRET, {
+								expiresIn: "150h",
+							});
+
+							res.json({
+								message: "Login successful",
+								token: token,
+								role: newUser.role,
+							});
+						}
+					);
+				} else {
+					if (user.isBlocked == 1) {
+						res.status(403).json({
+							message: "User is blocked. Contact admin.",
+						});
+						return;
+					}
+					const payload = {
+						email: user.email,
+						firstName: user.firstName,
+						lastName: user.lastName,
+						role: user.role,
+						isEmailVerified: user.isEmailVerified == 1,
+						image: user.image,
+					};
+
+					const token = jwt.sign(payload, process.env.JWT_SECRET, {
+						expiresIn: "150h",
+					});
+
+					res.json({
+						message: "Login successful",
+						token: token,
+						role: user.role,
+					});
+				}
+			}
+		);
+	} catch (error) {
+		res.status(500).json({
+			message: "Google login failed",
+			error: error.message,
+		});
+	}
+}
+
+export function getAllUsers(req, res) {
+    if(req.user.role != "admin"){
+        res.status(401).json({
+            message : "Unauthorized"
+        })
+        return
+    }
+
+    userTable.all("SELECT * FROM users", (err, rows) => {
+        if (err) {
+            res.status(500).json({
+                message: "Error fetching users",
+                error: err.message
+            })
+            return
+        }
+        res.json(rows)
+    })
+}
+
+export function updateUserStatus(req, res) {
+	if (!req.user) {
+		res.status(401).json({
+			message: "Unauthorized",
+		});
+		return;
+	}
+
+	if (req.user.role != "admin") {
+		res.status(403).json({
+			message: "Forbidden - admin access required",
+		});
+		return;
+	}
+
+	const email = req.params.email;
+
+	if (req.user.email === email) {
+		res.status(400).json({
+			message: "Admin cannot change their own status"
+		});
+		return;
+	}
+
+	const isBlocked = req.body.isBlocked;
+
+	if (isBlocked !== 0 && isBlocked !== 1) {
+		res.status(400).json({
+			message: "isBlocked must be 0 or 1"
+		});
+		return;
+	}
+
+	userTable.run(
+		"UPDATE users SET isBlocked = ? WHERE email = ?",
+		[isBlocked, email],
+		(err) => {
+			if (err) {
+				console.log(err);
+				res.status(500).json({
+					message: "Error updating user status",
+					error: err.message
+				});
+				return;
+			}
+			res.json({
+				message: "User status updated successfully"
+			});
+		}
+	);
+}
 
