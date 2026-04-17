@@ -315,6 +315,19 @@ export function Otpverify_Passwordreset(req, res){
     const otp = req.body.otp;
     const newpassword = req.body.newpassword;
     const email = req.body.email;
+
+    if (!otp || !newpassword || !email) {
+        return res.status(400).json({
+            message: "OTP, new password, and email are required"
+        });
+    }
+
+    if (typeof newpassword !== 'string') {
+        return res.status(400).json({
+            message: "New password must be a string"
+        });
+    }
+
     const hashedPassword = bcrypt.hashSync(newpassword,10);
 
     otpTable.get("SELECT * FROM otp WHERE email = ?",[email],
