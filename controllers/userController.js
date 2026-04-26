@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import otpTable from "../models/otpTable.js";
 import axios from "axios";
+import apiKeyTable from "../models/apiKeyTable.js";
+import crypto from "crypto";
 dotenv.config();
 
 const transporter = nodemailer.createTransport({
@@ -549,4 +551,99 @@ export function updateUserStatus(req, res) {
 		}
 	);
 }
+
+export function createApiKey(req, res) {
+	if (!req.user || req.user.role !== "admin") {
+		return res.status(403).json({ message: "Admin access required" });
+	}
+
+	const { clientName, permissions } = req.body;
+
+	if (!clientName || !permissions || !Array.isArray(permissions)) {
+		return res.status(400).json({ message: "clientName and permissions array required" });
+	}
+
+	const apiKey = crypto.randomBytes(32).toString('hex');
+
+	apiKeyTable.run(
+		"INSERT INTO api_keys (key, client_name, permissions) VALUES (?, ?, ?)",
+		[apiKey, clientName, JSON.stringify(permissions)],
+		function(err) {
+			if (err) {
+				return res.status(500).json({ message: "Failed to create API key", error: err.message });
+			}
+			res.json({ message: "API key created", apiKey, clientName, permissions });
+		}
+	);
+}
+
+export function getAllApiKeys(req, res) {
+	if (!req.user || req.user.role !== "admin") {
+		return res.status(403).json({ message: "Admin access required" });
+	}
+
+	apiKeyTable.all(
+		"SELECT id, key, client_name as clientName, permissions, created_at as createdAt, is_active as isActive FROM api_keys",
+		[],
+		(err, keys) => {
+			if (err) {
+				return res.status(500).json({ message: "Failed to fetch API keys", error: err.message });
+			}
+			
+			// Parse permissions JSON
+			const parsedKeys = keys.map(key => ({
+				...key,
+				permissions: JSON.parse(key.permissions)
+			}));
+			
+			res.json(parsedKeys);
+		}
+	);
+}
+
+export function updateApiKeyStatus(req, res) {
+	if (!req.user || req.user.role !== "admin") {
+		return res.status(403).json({ message: "Admin access required" });
+	}
+
+	const keyId = req.params.id;
+	const { isActive } = req.body;
+
+	if (isActive !== 0 && isActive !== 1) {
+		return res.status(400).json({ message: "isActive must be 0 or 1" });
+	}
+
+	apiKeyTable.run(
+		"UPDATE api_keys SET is_active = ? WHERE id = ?",
+		[isActive, keyId],
+		function(err) {
+			if (err) {
+				return res.status(500).json({ message: "Failed to update API key status", error: err.message });
+			}
+			const statusMessage = isActive === 1 ? "API key activated successfully" : "API key revoked successfully";
+			res.json({ message: statusMessage });
+		}
+	);
+}
+
+export function deleteApiKey(req, res) {
+	if (!req.user || req.user.role !== "admin") {
+		return res.status(403).json({ message: "Admin access required" });
+	}
+
+	const keyId = req.params.id;
+
+	apiKeyTable.run(
+		"DELETE FROM api_keys WHERE id = ?",
+		[keyId],
+		function(err) {
+			if (err) {
+				return res.status(500).json({ message: "Failed to delete API key", error: err.message });
+			}
+			res.json({ message: "API key deleted successfully" });
+		}
+	);
+}
+
+
 

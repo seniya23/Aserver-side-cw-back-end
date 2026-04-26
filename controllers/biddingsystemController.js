@@ -447,7 +447,11 @@ export function viewbidWinner(req, res){
                             res.json({
                                 message: alumni
                             });
-                        } 
+                        } else {
+                            res.status(404).json({
+                                message: "Alumni profile not found for winner"
+                            });
+                        }
                     }
                 )
             }

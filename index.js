@@ -9,6 +9,7 @@ import cron from 'node-cron';
 import { selectWinner } from './controllers/biddingsystemController.js';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
+import analyticsRouter from './routes/analyticsRouter.js';
 
 dotenv.config();
 const app = express();
@@ -34,6 +35,11 @@ const swaggerOptions = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
+        },
+        apiKey: {
+          type: 'apiKey',
+          in: 'header',
+          name: process.env.API_KEY_HEADER,
         },
       },
     },
@@ -82,12 +88,13 @@ app.use((req,res,next)=>{
 app.use("/api/users",userRouter);
 app.use("/api/alumni",alumniRouter);
 app.use("/api/bidding",biddingRouter);
+app.use("/api/analytics", analyticsRouter);
 
 // Schedule winner selection to run every day at 00.00
-cron.schedule('0 0 * * *', () => {
-  console.log('Running scheduled winner selection...');
-  selectWinner();
-});
+// cron.schedule('0 0 * * *', () => {
+//   console.log('Running scheduled winner selection...');
+//   selectWinner();
+// });
 
 // cron.schedule('* * * * *', () => {
 //   console.log('Running automated winner selection (test every minute)...');

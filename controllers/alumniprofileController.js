@@ -22,6 +22,8 @@ export function Createalumniprofile(req,res){
     const degrees = req.body.degrees;
     const linkedinUrl = req.body.linkedinUrl;
     const biography = req.body.biography;
+    const industry = req.body.industry;
+    const graduationYear = req.body.graduationYear;
 
     // Calculate profile completion percentage
     const profileData = {
@@ -33,7 +35,9 @@ export function Createalumniprofile(req,res){
         professionalCertifications,
         degrees,
         linkedinUrl,
-        biography
+        biography,
+        industry,
+        graduationYear
     };
     const profileCompletionPercentage = calculateProfileCompletion(profileData);
 
@@ -56,8 +60,8 @@ export function Createalumniprofile(req,res){
 
 
             alumniTable.run(
-                `INSERT INTO alumni (email, firstName, lastName, image, employmentStartDate, employmentEndDate, shortCourses, professionalLicences, professionalCertifications, degrees, linkedinUrl, biography, profileCompletionPercentage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [email, firstName, lastName, image, employmentStartDate, employmentEndDate, shortCourse, professionalLicences, professionalCertifications, degrees, linkedinUrl, biography, profileCompletionPercentage],
+                `INSERT INTO alumni (email, firstName, lastName, image, employmentStartDate, employmentEndDate, shortCourses, professionalLicences, professionalCertifications, degrees, linkedinUrl, biography, profileCompletionPercentage, industry, graduationYear) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [email, firstName, lastName, image, employmentStartDate, employmentEndDate, shortCourse, professionalLicences, professionalCertifications, degrees, linkedinUrl, biography, profileCompletionPercentage, industry, graduationYear],
                 (err)=>{
                     if(err){
                         res.status(500).json({
@@ -89,19 +93,19 @@ export function Getalumniprofile(req,res){
             }
             if(user){
                 // recalculate completion to ensure it's up-to-date
-                // const computed = calculateProfileCompletion(user);
-                // if (computed !== user.profileCompletionPercentage) {
-                //     alumniTable.run(
-                //         "UPDATE alumni SET profileCompletionPercentage = ? WHERE email = ?",
-                //         [computed, email],
-                //         updateErr => {
-                //             if (updateErr) {
-                //                 console.error("Failed to update completion percentage", updateErr);
-                //             }
-                //         }
-                //     );
-                //     user.profileCompletionPercentage = computed;
-                // }
+                const computed = calculateProfileCompletion(user);
+                if (computed !== user.profileCompletionPercentage) {
+                    alumniTable.run(
+                        "UPDATE alumni SET profileCompletionPercentage = ? WHERE email = ?",
+                        [computed, email],
+                        updateErr => {
+                            if (updateErr) {
+                                console.error("Failed to update completion percentage", updateErr);
+                            }
+                        }
+                    );
+                    user.profileCompletionPercentage = computed;
+                }
 
                 res.json({
                     massage : user
@@ -155,7 +159,7 @@ export function Updatealumniprofile(req, res) {
             const completion = calculateProfileCompletion(updated);
 
             alumniTable.run(
-                `UPDATE alumni SET image = ?, employmentStartDate = ?, employmentEndDate = ?, shortCourses = ?, professionalLicences = ?, professionalCertifications = ?, degrees = ?, linkedinUrl = ?, biography = ?, profileCompletionPercentage = ? WHERE email = ?`,
+                `UPDATE alumni SET image = ?, employmentStartDate = ?, employmentEndDate = ?, shortCourses = ?, professionalLicences = ?, professionalCertifications = ?, degrees = ?, linkedinUrl = ?, biography = ?, profileCompletionPercentage = ?, industry = ?, graduationYear = ? WHERE email = ?`,
                 [
                     updated.image || existing.image,
                     updated.employmentStartDate || existing.employmentStartDate,
@@ -167,6 +171,8 @@ export function Updatealumniprofile(req, res) {
                     updated.linkedinUrl || existing.linkedinUrl,
                     updated.biography || existing.biography,
                     completion,
+                    updated.industry || existing.industry,
+                    updated.graduationYear || existing.graduationYear,
                     email
                 ],
                 (err) => {
@@ -195,7 +201,9 @@ export function calculateProfileCompletion(alumniData) {
         'employmentEndDate',
         'shortCourses',
         'professionalLicences',
-        'professionalCertifications'
+        'professionalCertifications',
+        'industry',
+        'graduationYear'
     ];
 
     let completedRequired = 0;
@@ -203,7 +211,7 @@ export function calculateProfileCompletion(alumniData) {
 
     // Check required fields 
     requiredFields.forEach(field => {
-        if (alumniData[field] && alumniData[field].trim() !== '') {
+        if (alumniData[field] && typeof alumniData[field] === 'string' && alumniData[field].trim() !== '') {
             completedRequired++;
         }
     });
@@ -216,12 +224,17 @@ export function calculateProfileCompletion(alumniData) {
     optionalFields.forEach(field => {
         if (field === 'image') {
             // Special check for image must not be default
-            if (alumniData[field] && alumniData[field].trim() !== '' && alumniData[field] !== 'default.jpg') {
+            if (alumniData[field] && typeof alumniData[field] === 'string' && alumniData[field].trim() !== '' && alumniData[field] !== 'default.jpg') {
+                optionalCompleted++;
+            }
+        } else if (field === 'graduationYear') {
+            // Special check for graduationYear (it's a number)
+            if (alumniData[field] && alumniData[field] !== null && alumniData[field] !== '') {
                 optionalCompleted++;
             }
         } else {
             // Regular check for other optional fields
-            if (alumniData[field] && alumniData[field].trim() !== '') {
+            if (alumniData[field] && typeof alumniData[field] === 'string' && alumniData[field].trim() !== '') {
                 optionalCompleted++;
             }
         }

@@ -1,5 +1,5 @@
 import express from "express";
-import { Createuser, getAllUsers, googleLogin, Loginuser, Otpverify_Passwordreset, Sendotp, updateUserStatus, Userdelete } from "../controllers/userController.js";
+import { Createuser, getAllUsers, googleLogin, Loginuser, Otpverify_Passwordreset, Sendotp, updateUserStatus, Userdelete, createApiKey, getAllApiKeys, updateApiKeyStatus, deleteApiKey } from "../controllers/userController.js";
 
 const userRouter = express.Router();
 
@@ -268,5 +268,15 @@ userRouter.post("/google-login", googleLogin)
 userRouter.get("/all", getAllUsers)
 
 userRouter.put("/toggle-block/:email", updateUserStatus)
+
+userRouter.post("/create-api-key", createApiKey)
+
+userRouter.get("/api-keys", getAllApiKeys)
+
+userRouter.put("/api-keys/:id/status", updateApiKeyStatus)
+
+userRouter.delete("/api-keys/:id", deleteApiKey)
+
+
 
 export default userRouter

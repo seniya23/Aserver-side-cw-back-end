@@ -16,7 +16,9 @@ db.run(`
     linkedinUrl TEXT,
     biography TEXT,
     bidWins INTEGER DEFAULT 0,
-    profileCompletionPercentage INTEGER DEFAULT 0
+    profileCompletionPercentage INTEGER DEFAULT 0,
+    industry TEXT,
+    graduationYear INTEGER    
   )
 `);
 

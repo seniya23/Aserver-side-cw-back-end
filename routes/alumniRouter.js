@@ -1,5 +1,7 @@
 import express from "express";
 import { Createalumniprofile, Getalumniprofile, Updatealumniprofile } from "../controllers/alumniprofileController.js";
+import { viewbidWinner } from "../controllers/biddingsystemController.js";
+import { authenticateApiKey, requirePermission } from "../middlewares/apiKeyAuth.js";
 
 const alumniRouter = express.Router();
 
@@ -64,6 +66,37 @@ const alumniRouter = express.Router();
  *         description: Database error
  */
 alumniRouter.post("/", Createalumniprofile)
+
+/**
+ * @swagger
+ * /api/alumni/of-the-day:
+ *   get:
+ *     summary: Get alumni of the day (current bid winner) - Mobile AR App
+ *     tags: [Alumni]
+ *     security:
+ *       - apiKey: []
+ *     responses:
+ *       200:
+ *         description: Current alumni of the day (bid winner)
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: {
+ *                 id: 1,
+ *                 email: "alumni@example.com",
+ *                 firstName: "John",
+ *                 lastName: "Doe",
+ *                 bidWins: 5,
+ *                 image: "profile.jpg"
+ *               }
+ *       400:
+ *         description: No active winner
+ *       403:
+ *         description: Insufficient permissions (requires read:alumni_of_day)
+ *       500:
+ *         description: Database error
+ */
+alumniRouter.get("/of-the-day", authenticateApiKey, requirePermission("read:alumni_of_day"), viewbidWinner)
 
 /**
  * @swagger
