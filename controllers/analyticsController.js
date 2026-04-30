@@ -30,7 +30,7 @@ export function getGraduationYearData(req, res) {
 }
 
 export function getCertificationsData(req, res) {
-    // Assuming certifications are comma-separated in professionalCertifications
+    
     alumniTable.all("SELECT professionalCertifications FROM alumni WHERE professionalCertifications IS NOT NULL", (err, rows) => {
         if (err) {
             return res.status(500).json({ message: "Database error" });
@@ -60,7 +60,7 @@ export function getBidWinsData(req, res) {
 }
 
 export function getDegreesData(req, res) {
-    // Assuming degrees are comma-separated
+    
     alumniTable.all("SELECT degrees FROM alumni WHERE degrees IS NOT NULL", (err, rows) => {
         if (err) {
             return res.status(500).json({ message: "Database error" });
@@ -113,4 +113,3 @@ export function getEmploymentDurationData(req, res) {
     );
 }
 
-// Additional analytics endpoints can be added here

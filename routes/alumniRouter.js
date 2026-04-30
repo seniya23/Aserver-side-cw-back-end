@@ -2,6 +2,7 @@ import express from "express";
 import { Createalumniprofile, Getalumniprofile, Updatealumniprofile } from "../controllers/alumniprofileController.js";
 import { viewbidWinner } from "../controllers/biddingsystemController.js";
 import { authenticateApiKey, requirePermission } from "../middlewares/apiKeyAuth.js";
+import { createAlumniPost, getHomeFeedPosts, getPostsByAlumniEmail } from "../controllers/alumniPostController.js";
 
 const alumniRouter = express.Router();
 
@@ -97,6 +98,76 @@ alumniRouter.post("/", Createalumniprofile)
  *         description: Database error
  */
 alumniRouter.get("/of-the-day", authenticateApiKey, requirePermission("read:alumni_of_day"), viewbidWinner)
+
+/**
+ * @swagger
+ * /api/alumni/posts:
+ *   post:
+ *     summary: Create an alumni post
+ *     tags: [Alumni]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 description: Post content
+ *     responses:
+ *       201:
+ *         description: Post created successfully
+ *       401:
+ *         description: Please login
+ *       403:
+ *         description: Only alumni can create posts
+ */
+alumniRouter.post("/posts", createAlumniPost)
+
+/**
+ * @swagger
+ * /api/alumni/posts:
+ *   get:
+ *     summary: Get all alumni posts for home page feed
+ *     tags: [Alumni]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Feed posts fetched successfully
+ *       401:
+ *         description: Please login
+ */
+alumniRouter.get("/posts", getHomeFeedPosts)
+
+/**
+ * @swagger
+ * /api/alumni/{email}/posts:
+ *   get:
+ *     summary: Get posts by a specific alumni
+ *     tags: [Alumni]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: email
+ *         description: Alumni email
+ *     responses:
+ *       200:
+ *         description: Alumni posts fetched successfully
+ *       404:
+ *         description: Alumni not found
+ */
+alumniRouter.get("/:email/posts", getPostsByAlumniEmail)
 
 /**
  * @swagger

@@ -1,5 +1,6 @@
 import express from "express";
-import { clearBids, deleteBids, placeBidding, selectWinner, updateBid, viewBiddingAlumni, viewbidWinner } from "../controllers/biddingsystemController.js";
+import { clearBids, deleteBids, placeBidding, selectWinner, updateBid, viewBiddingAlumni, viewbidWinner, adminGetAllBids, adminGetActiveBids, adminGetWinners, adminGetStats } from "../controllers/biddingsystemController.js";
+import { authenticateApiKey, requirePermission } from "../middlewares/apiKeyAuth.js";
 
 const biddingRouter = express.Router();
 
@@ -223,5 +224,70 @@ biddingRouter.post("/winner",selectWinner);
  *               message: "No active winner"
  */
 biddingRouter.post("/viewwinner",viewbidWinner);
+
+// Admin routes for bidding management with API key authentication
+/**
+ * @swagger
+ * /api/bidding/admin/all-bids:
+ *   get:
+ *     summary: Get all bids (Admin - API Key required)
+ *     tags: [Bidding Admin]
+ *     security:
+ *       - apiKey: []
+ *     responses:
+ *       200:
+ *         description: Array of all bids
+ *       403:
+ *         description: Insufficient permissions
+ */
+biddingRouter.get("/admin/all-bids", authenticateApiKey, requirePermission("read:bidding"), adminGetAllBids);
+
+/**
+ * @swagger
+ * /api/bidding/admin/active-bids:
+ *   get:
+ *     summary: Get active bids (Admin - API Key required)
+ *     tags: [Bidding Admin]
+ *     security:
+ *       - apiKey: []
+ *     responses:
+ *       200:
+ *         description: Array of active bids
+ *       403:
+ *         description: Insufficient permissions
+ */
+biddingRouter.get("/admin/active-bids", authenticateApiKey, requirePermission("read:bidding"), adminGetActiveBids);
+
+/**
+ * @swagger
+ * /api/bidding/admin/winners:
+ *   get:
+ *     summary: Get winning bids (Admin - API Key required)
+ *     tags: [Bidding Admin]
+ *     security:
+ *       - apiKey: []
+ *     responses:
+ *       200:
+ *         description: Array of winning bids
+ *       403:
+ *         description: Insufficient permissions
+ */
+biddingRouter.get("/admin/winners", authenticateApiKey, requirePermission("read:bidding"), adminGetWinners);
+
+/**
+ * @swagger
+ * /api/bidding/admin/stats:
+ *   get:
+ *     summary: Get bidding statistics (Admin - API Key required)
+ *     tags: [Bidding Admin]
+ *     security:
+ *       - apiKey: []
+ *     responses:
+ *       200:
+ *         description: Bidding statistics
+ *       403:
+ *         description: Insufficient permissions
+ */
+biddingRouter.get("/admin/stats", authenticateApiKey, requirePermission("read:bidding"), adminGetStats);
 
 export default biddingRouter

@@ -557,3 +557,63 @@ export function clearBids(req, res) {
   });
 }
 
+// Admin endpoints for API key scoping 
+export function adminGetAllBids(req, res) {
+	biddingTable.all(
+		"SELECT id, email, firstName, lastName, bidAmount, bidDate, status FROM bidding ORDER BY bidDate DESC",
+		[],
+		(err, bids) => {
+			if (err) {
+				return res.status(500).json({ message: "Database error", error: err.message });
+			}
+			res.json(bids || []);
+		}
+	);
+}
+
+export function adminGetActiveBids(req, res) {
+	biddingTable.all(
+		"SELECT id, email, firstName, lastName, bidAmount, bidDate, status FROM bidding WHERE status = 'active' ORDER BY bidAmount DESC",
+		[],
+		(err, bids) => {
+			if (err) {
+				return res.status(500).json({ message: "Database error", error: err.message });
+			}
+			res.json(bids || []);
+		}
+	);
+}
+
+export function adminGetWinners(req, res) {
+	biddingTable.all(
+		"SELECT id, email, firstName, lastName, bidAmount, bidDate, status FROM bidding WHERE status = 'won' ORDER BY bidDate DESC",
+		[],
+		(err, bids) => {
+			if (err) {
+				return res.status(500).json({ message: "Database error", error: err.message });
+			}
+			res.json(bids || []);
+		}
+	);
+}
+
+export function adminGetStats(req, res) {
+	biddingTable.all(
+		`SELECT 
+			COUNT(*) as totalBids,
+			SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as activeBids,
+			SUM(CASE WHEN status = 'won' THEN 1 ELSE 0 END) as wonBids,
+			ROUND(AVG(bidAmount), 2) as avgBidAmount,
+			MAX(bidAmount) as highestBid,
+			MIN(bidAmount) as lowestBid
+		FROM bidding`,
+		[],
+		(err, stats) => {
+			if (err) {
+				return res.status(500).json({ message: "Database error", error: err.message });
+			}
+			res.json(stats[0] || {});
+		}
+	);
+}
+

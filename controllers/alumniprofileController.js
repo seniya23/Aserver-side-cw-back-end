@@ -209,14 +209,14 @@ export function calculateProfileCompletion(alumniData) {
     let completedRequired = 0;
     let totalRequired = requiredFields.length;
 
-    // Check required fields 
+    
     requiredFields.forEach(field => {
         if (alumniData[field] && typeof alumniData[field] === 'string' && alumniData[field].trim() !== '') {
             completedRequired++;
         }
     });
 
-    // Calculate base completion from required fields
+    
     let completionPercentage = (completedRequired / totalRequired) * 70; // 70% from required fields
 
     // Add points for optional fields (up to 30% bonus)

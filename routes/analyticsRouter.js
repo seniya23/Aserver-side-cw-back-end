@@ -12,7 +12,6 @@ import {
 
 const analyticsRouter = express.Router();
 
-// Apply API key authentication to all analytics routes
 analyticsRouter.use(authenticateApiKey);
 
 /**

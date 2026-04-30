@@ -49,7 +49,7 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ['./routes/*.js', './controllers/*.js'], // Paths to files containing OpenAPI definitions
+  apis: ['./routes/*.js', './controllers/*.js'], // Paths to files containing API definitions
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -91,10 +91,10 @@ app.use("/api/bidding",biddingRouter);
 app.use("/api/analytics", analyticsRouter);
 
 // Schedule winner selection to run every day at 00.00
-// cron.schedule('0 0 * * *', () => {
-//   console.log('Running scheduled winner selection...');
-//   selectWinner();
-// });
+cron.schedule('0 0 * * *', () => {
+  console.log('Running scheduled winner selection...');
+  selectWinner();
+});
 
 // cron.schedule('* * * * *', () => {
 //   console.log('Running automated winner selection (test every minute)...');
