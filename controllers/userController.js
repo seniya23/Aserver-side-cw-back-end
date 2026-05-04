@@ -388,8 +388,7 @@ export async function googleLogin(req, res) {
 			}
 		);
 
-		console.log(response.data); //response.data have all the information about the user from google
-
+		console.log(response.data); 
         //check user already in database or not
 		userTable.get(
 			"SELECT * FROM users WHERE email = ?",
@@ -406,7 +405,7 @@ export async function googleLogin(req, res) {
 					// Insert new user
 					userTable.run(
 						`INSERT INTO users (email, firstName, lastName, password, role, isEmailVerified, image) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-						[response.data.email, response.data.given_name, response.data.family_name, "123", "alumni", 1, response.data.picture || "default.jpg"],
+						[response.data.email, response.data.given_name, response.data.family_name, "123", "user", 1, response.data.picture || "default.jpg"],
 						function(err) {
 							if (err) {
 								res.status(500).json({
@@ -419,7 +418,7 @@ export async function googleLogin(req, res) {
 								email: response.data.email,
 								firstName: response.data.given_name,
 								lastName: response.data.family_name,
-								role: "alumni",
+								role: "user",
 								isEmailVerified: 1,
 								image: response.data.picture || "default.jpg",
 							};

@@ -1,4 +1,5 @@
 import alumniTable from "../models/alumniTable.js";
+import userTable from "../models/userTable.js";
 
 
 export function Createalumniprofile(req,res){
@@ -69,9 +70,21 @@ export function Createalumniprofile(req,res){
                         });
                         return;
                     }
-                    res.json({
-                        message: "Alumni profile created successfully"
-                    });
+                    userTable.run(
+                        "UPDATE users SET role = 'alumni' WHERE email = ? AND role = 'user'",
+                        [email],
+                        (roleErr) => {
+                            if (roleErr) {
+                                res.status(500).json({
+                                    message: "Profile created but failed to update account role"
+                                });
+                                return;
+                            }
+                            res.json({
+                                message: "Alumni profile created successfully"
+                            });
+                        }
+                    );
                 }
             );
         }
