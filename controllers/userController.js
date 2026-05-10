@@ -50,7 +50,7 @@ export function Createuser(req ,res) {
                     return res.status(400).json({
                         message: "Only university email allowed"
                     });
-                }
+                } 
                 else{
                 userTable.run(
                     `INSERT INTO users (email, firstName, lastName, password, role, image) VALUES (?, ?, ?, ?, ?, ?)`,

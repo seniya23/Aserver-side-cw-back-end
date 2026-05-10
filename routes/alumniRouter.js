@@ -70,7 +70,7 @@ alumniRouter.post("/", Createalumniprofile)
 
 /**
  * @swagger
- * /api/alumni/of-the-day:
+ * /api/alumni/alumni-of-the-day:
  *   get:
  *     summary: Get alumni of the day (current bid winner) - Mobile AR App
  *     tags: [Alumni]
@@ -84,9 +84,9 @@ alumniRouter.post("/", Createalumniprofile)
  *             example:
  *               message: {
  *                 id: 1,
- *                 email: "alumni@example.com",
- *                 firstName: "John",
- *                 lastName: "Doe",
+ *                 email: "email",
+ *                 firstName: "firstname",
+ *                 lastName: "lastname",
  *                 bidWins: 5,
  *                 image: "profile.jpg"
  *               }
@@ -97,7 +97,7 @@ alumniRouter.post("/", Createalumniprofile)
  *       500:
  *         description: Database error
  */
-alumniRouter.get("/of-the-day", authenticateApiKey, requirePermission("read:alumni_of_day"), viewbidWinner)
+alumniRouter.get("/alumni-of-the-day", authenticateApiKey, requirePermission("read:alumni_of_day"), viewbidWinner)
 
 /**
  * @swagger

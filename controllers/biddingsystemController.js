@@ -488,48 +488,49 @@ export function bidHistory(req,res){
     )
 }
 
-export function deleteBids(req,res){
-    const email =  req.params.email;
+export function deleteBids(req, res) {
+    const bidId = req.params.id;
 
-    if (!req.user || req.user.role !== 'admin') {
-        res.status(401).json({
-            message: "Unauthorized"
+    if (!bidId) {
+        return res.status(400).json({
+            message: "Bid id is required"
         });
-        return;
     }
 
     biddingTable.get(
-        "SELECT * FROM bidding WHERE email = ?",[email],
-        (err,user)=>{
-            if(err){
-                res.status(500).json({
-                    massage : "Database error"
-                })
-                return
+        "SELECT * FROM bidding WHERE id = ?",
+        [bidId],
+        (err, bid) => {
+            if (err) {
+                return res.status(500).json({
+                    message: "Database error"
+                });
             }
-            if(!user){
-                res.status(404).json({
-                    massage : "User not Exist"
-                })
-                return
+
+            if (!bid) {
+                return res.status(404).json({
+                    message: "Bid not found"
+                });
             }
 
             biddingTable.run(
-                "DELETE FROM bidding WHERE email = ?",[email],
-                (err)=>{
-                    if(err){
-                        res.status(500).json({
-                            massage : "Database error"
-                        })
-                        return
+                "DELETE FROM bidding WHERE id = ?",
+                [bidId],
+                function(deleteErr) {
+                    if (deleteErr) {
+                        return res.status(500).json({
+                            message: "Database error"
+                        });
                     }
-                    res.json({
-                        massage : "Bids deleted successfully"
-                    })
+
+                    return res.json({
+                        message: "Bid deleted successfully",
+                        deletedBidId: Number(bidId)
+                    });
                 }
-            )
+            );
         }
-    )
+    );
 }
 
 

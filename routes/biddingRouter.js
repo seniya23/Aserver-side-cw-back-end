@@ -83,57 +83,52 @@ biddingRouter.get("/", viewBiddingAlumni)
 
 /**
  * @swagger
- * /api/bidding/{email}:
- *   get:
- *     summary: Delete current bid of a specific alumni
- *     tags: [Bidding]
+ * /api/bidding/admin/{id}:
+ *   delete:
+ *     summary: Delete one specific bid by id (Admin API key scope)
+ *     tags: [Bidding Admin]
  *     security:
- *       - bearerAuth: []
+ *       - apiKey: []
  *     parameters:
  *       - in: path
- *         name: email
+ *         name: id
  *         required: true
  *         schema:
- *           type: string
- *           format: email
- *         description: Email of the alumni whose bids to delete
+ *           type: integer
+ *         description: Bid id to delete
  *     responses:
  *       200:
- *         description: Bids deleted successfully
- *         content:
- *           application/json:
- *             example:
- *               message: "Bids deleted successfully"
- *       401:
- *         description: Unauthorized
+ *         description: Bid deleted successfully
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Bid not found
  *       500:
  *         description: Database error
- *       404:
- *         description: User not Exist
  */
-biddingRouter.get("/:email", deleteBids)
+biddingRouter.delete("/admin/:id", authenticateApiKey, requirePermission("write:bidding"), deleteBids)
 
-/**
- * @swagger
- * /api/bidding/clear:
- *   delete:
- *     summary: Clear bidding and bidhistory tables
- *     tags: [Bidding]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: All bids cleared successfully
- *         content:
- *           application/json:
- *             example:
- *               message: "All bids cleared successfully"
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Delete bidhistory failed
- */
-biddingRouter.delete("/clear", clearBids);
+// /**
+//  * @swagger
+//  * /api/bidding/clear:
+//  *   delete:
+//  *     summary: Clear bidding and bidhistory tables
+//  *     tags: [Bidding]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     responses:
+//  *       200:
+//  *         description: All bids cleared successfully
+//  *         content:
+//  *           application/json:
+//  *             example:
+//  *               message: "All bids cleared successfully"
+//  *       401:
+//  *         description: Unauthorized
+//  *       500:
+//  *         description: Delete bidhistory failed
+//  */
+// biddingRouter.delete("/clear", clearBids);
 
 /**
  * @swagger
