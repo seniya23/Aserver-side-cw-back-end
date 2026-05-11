@@ -168,7 +168,7 @@ export function Updatealumniprofile(req, res) {
                 ...req.body
             };
 
-            // Calculate profile completion percentage
+            
             const completion = calculateProfileCompletion(updated);
 
             alumniTable.run(

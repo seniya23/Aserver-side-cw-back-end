@@ -1,6 +1,6 @@
 import alumniTable from "../models/alumniTable.js";
 
-// Helper function to get data grouped by a field
+// Helper function 
 function getGroupedData(field, callback) {
     alumniTable.all(`SELECT ${field}, COUNT(*) as count FROM alumni WHERE ${field} IS NOT NULL GROUP BY ${field}`, (err, rows) => {
         if (err) {

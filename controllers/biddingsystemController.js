@@ -369,7 +369,7 @@ export function selectWinner() {
                         return;
                     }
 
-                    // Update alumni bidWins
+              
                     alumniTable.run(
                         "UPDATE alumni SET bidWins = bidWins + 1 WHERE email = ?",
                         [winner.email],
@@ -380,7 +380,7 @@ export function selectWinner() {
                         }
                     );
 
-                    // Insert into history
+                  
                     bidhistoryTable.run(
                         `INSERT INTO bidhistory (email, firstName, lastName, bidAmount, action) VALUES (?, ?, ?, ?, ?)`,
                         [winner.email, winner.firstName, winner.lastName, winner.bidAmount, 'won'],
@@ -547,7 +547,7 @@ export function clearBids(req, res) {
       db.run("DELETE FROM bidhistory", (err2) => {
         if (err2) return res.status(500).json({ message: "Delete bidhistory failed", error: err2.message });
 
-        // optional: reset autoincrement sequence
+        
         db.run("DELETE FROM sqlite_sequence WHERE name IN ('bidding', 'bidhistory')", (err3) => {
           if (err3) console.warn("sqlite_sequence reset failed", err3.message);
 
@@ -558,7 +558,7 @@ export function clearBids(req, res) {
   });
 }
 
-// Admin endpoints for API key scoping 
+ 
 export function adminGetAllBids(req, res) {
 	biddingTable.all(
 		"SELECT id, email, firstName, lastName, bidAmount, bidDate, status FROM bidding ORDER BY bidDate DESC",
