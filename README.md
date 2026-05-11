@@ -1,4 +1,4 @@
-# PHANTASMAGORIA Alumni Platform
+# PHANTASMAGORIA Alumni Platform - (Back End (Express))
 
 This project is a web-based API developed using Express.js for managing an alumni influencer platform. It enables alumni to create professional profiles, participate in a blind bidding system, and be featured daily.
 
